@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Catatan Tugas Kuliah</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <h1>Catatan Tugas Kuliah</h1>
+      <p class="subtitle">Silakan login atau daftar untuk mulai mengelola tugas.</p>
+
+      <div id="alert" class="alert" style="display:none;"></div>
+
+      <div id="form-login">
+        <h3>Login</h3>
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="nama@example.com">
+
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="Password">
+
+        <div class="button-row">
+          <button class="btn-primary" onclick="login()">Login</button>
+          <span class="text-small">
+            Belum punya akun?
+            <span class="link" onclick="toggleForm('register')">Daftar di sini</span>
+          </span>
+        </div>
+      </div>
+
+      <div id="form-register" style="display:none;">
+        <h3>Register</h3>
+        <label for="reg-name">Nama Lengkap</label>
+        <input type="text" id="reg-name" placeholder="Nama kamu">
+
+        <label for="reg-email">Email</label>
+        <input type="email" id="reg-email" placeholder="nama@example.com">
+
+        <label for="reg-password">Password</label>
+        <input type="password" id="reg-password" placeholder="Password">
+
+        <div class="button-row">
+          <button class="btn-primary" onclick="registerUser()">Daftar</button>
+          <button class="btn-secondary" type="button" onclick="toggleForm('login')">Batal</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-small text-right">
+      <span class="badge badge-info">Tugas Pemrograman Web</span>
+    </div>
+  </div>
+
+<script>
+  const API_BASE = "../api";
+
+  function showAlert(message, type = "info") {
+    const alert = document.getElementById("alert");
+    alert.style.display = "block";
+    alert.textContent = message;
+    alert.className = "alert alert-" + type;
+  }
+
+  function clearAlert() {
+    const alert = document.getElementById("alert");
+    alert.style.display = "none";
+  }
+
+  function toggleForm(mode) {
+    clearAlert();
+    const loginForm = document.getElementById("form-login");
+    const registerForm = document.getElementById("form-register");
+
+    if (mode === "register") {
+      loginForm.style.display = "none";
+      registerForm.style.display = "block";
+    } else {
+      loginForm.style.display = "block";
+      registerForm.style.display = "none";
+    }
+  }
+
+  function login() {
+    clearAlert();
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+
+    if (!email || !password) {
+      showAlert("Email dan password wajib diisi", "error");
+      return;
+    }
+
+    fetch(API_BASE + "/login.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.token) {
+        // Simpan token dan nama user di localStorage
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userName", data.user.name);
+        window.location.href = "tugas.html";
+      } else {
+        showAlert(data.message || "Login gagal", "error");
+      }
+    })
+    .catch(err => {
+      showAlert("Terjadi kesalahan: " + err, "error");
+    });
+  }
+
+  function registerUser() {
+    clearAlert();
+    const name = document.getElementById("reg-name").value.trim();
+    const email = document.getElementById("reg-email").value.trim();
+    const password = document.getElementById("reg-password").value.trim();
+
+    if (!name || !email || !password) {
+      showAlert("Nama, email, dan password wajib diisi", "error");
+      return;
+    }
+
+    fetch(API_BASE + "/register.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ name, email, password })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.user) {
+        showAlert("Register berhasil, silakan login.", "success");
+        toggleForm("login");
+      } else {
+        showAlert(data.message || "Register gagal", "error");
+      }
+    })
+    .catch(err => {
+      showAlert("Terjadi kesalahan: " + err, "error");
+    });
+  }
+</script>
+</body>
+</html>

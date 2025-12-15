@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Catatan Tugas Kuliah</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="navbar">
+    <div class="navbar-inner">
+      <div>
+        <span class="navbar-title">Catatan Tugas Kuliah</span>
+      </div>
+      <div>
+        <span id="user-greeting"></span>
+        <button class="btn-secondary btn-small" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrapper">
+    <div class="card">
+      <h2>Tambah / Edit Tugas</h2>
+      <p class="subtitle">Isi form di bawah untuk menambahkan tugas baru kamu </p>
+
+      <div id="alert" class="alert" style="display:none;"></div>
+
+      <input type="hidden" id="tugas-id">
+
+      <label for="mk">Mata Kuliah</label>
+      <input type="text" id="mk" placeholder="Contoh: Pemrograman Web">
+
+      <label for="judul">Judul Tugas</label>
+      <input type="text" id="judul" placeholder="Misal: Membuat Web">
+
+      <label for="deskripsi">Deskripsi</label>
+      <textarea id="deskripsi" rows="3" placeholder="Penjelasan singkat tugas (opsional)"></textarea>
+
+      <label for="deadline">Deadline</label>
+      <input type="date" id="deadline">
+
+      <label for="status">Status</label>
+      <select id="status">
+        <option value="belum">Belum dikerjakan</option>
+        <option value="proses">Sedang dikerjakan</option>
+        <option value="selesai">Selesai</option>
+      </select>
+
+      <div class="button-row">
+        <button class="btn-primary" onclick="submitTugas()">Simpan Tugas</button>
+        <button class="btn-secondary" type="button" onclick="resetForm()">Reset</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Daftar Tugas</h2>
+      <p class="subtitle">Semua tugas yang kamu simpan akan muncul di sini.</p>
+      <div id="tugas-container" class="tugas-list"></div>
+    </div>
+  </div>
+
+<script>
+  const API_BASE = "../api";
+  let token = localStorage.getItem("token") || "";
+
+  function init() {
+    if (!token) {
+      window.location.href = "index.html";
+      return;
+    }
+    const name = localStorage.getItem("userName") || "";
+    const greet = document.getElementById("user-greeting");
+    greet.textContent = name ? "Halo, " + name : "";
+    loadTugas();
+  }
+
+  function showAlert(message, type = "info") {
+    const alert = document.getElementById("alert");
+    alert.style.display = "block";
+    alert.textContent = message;
+    alert.className = "alert alert-" + type;
+  }
+
+  function clearAlert() {
+    const alert = document.getElementById("alert");
+    alert.style.display = "none";
+  }
+
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userName");
+    window.location.href = "index.html";
+  }
+
+  function resetForm() {
+    document.getElementById("tugas-id").value = "";
+    document.getElementById("mk").value = "";
+    document.getElementById("judul").value = "";
+    document.getElementById("deskripsi").value = "";
+    document.getElementById("deadline").value = "";
+    document.getElementById("status").value = "belum";
+    clearAlert();
+  }
+
+  function loadTugas() {
+    fetch(API_BASE + "/tugas.php", {
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data)) {
+        renderTugas(data);
+      } else if (data.message) {
+        showAlert(data.message, "error");
+        if (res.status === 401) {
+          logout();
+        }
+      }
+    })
+    .catch(err => {
+      showAlert("Gagal memuat tugas: " + err, "error");
+    });
+  }
+
+  function renderTugas(list) {
+    const container = document.getElementById("tugas-container");
+    container.innerHTML = "";
+
+    if (list.length === 0) {
+      container.innerHTML = "<p class='text-small'>Belum ada tugas. Tambahkan dari form di atas.</p>";
+      return;
+    }
+
+    list.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "tugas-card";
+
+      const statusBadge = document.createElement("span");
+      statusBadge.classList.add("badge");
+      if (item.status === "belum") {
+        statusBadge.classList.add("badge-warning");
+      } else if (item.status === "proses") {
+        statusBadge.classList.add("badge-info");
+      } else {
+        statusBadge.classList.add("badge-success");
+      }
+      statusBadge.textContent = item.status.toUpperCase();
+
+      div.innerHTML = `
+        <div class="tugas-title">${escapeHtml(item.judul)}</div>
+        <div class="tugas-meta">
+          Mata Kuliah: ${escapeHtml(item.mata_kuliah)}<br>
+          Deadline: ${item.deadline}
+        </div>
+      `;
+
+      div.appendChild(statusBadge);
+
+      if (item.deskripsi) {
+        const desc = document.createElement("div");
+        desc.className = "tugas-meta";
+        desc.textContent = item.deskripsi;
+        div.appendChild(desc);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "tugas-actions";
+
+      const btnEdit = document.createElement("button");
+      btnEdit.className = "btn-secondary btn-small";
+      btnEdit.textContent = "Edit";
+      btnEdit.onclick = () => editTugas(item);
+
+      const btnDelete = document.createElement("button");
+      btnDelete.className = "btn-danger btn-small";
+      btnDelete.textContent = "Hapus";
+      btnDelete.onclick = () => deleteTugas(item.id);
+
+      actions.appendChild(btnEdit);
+      actions.appendChild(btnDelete);
+      div.appendChild(actions);
+
+      container.appendChild(div);
+    });
+  }
+
+  function submitTugas() {
+    clearAlert();
+    const id = document.getElementById("tugas-id").value;
+    const mata_kuliah = document.getElementById("mk").value.trim();
+    const judul = document.getElementById("judul").value.trim();
+    const deskripsi = document.getElementById("deskripsi").value.trim();
+    const deadline = document.getElementById("deadline").value;
+    const status = document.getElementById("status").value;
+
+    if (!mata_kuliah || !judul || !deadline) {
+      showAlert("Mata kuliah, judul, dan deadline wajib diisi", "error");
+      return;
+    }
+
+    const body = { mata_kuliah, judul, deskripsi, deadline, status };
+
+    let url = API_BASE + "/tugas.php";
+    let method = "POST";
+    if (id) {
+      url += "?id=" + encodeURIComponent(id);
+      method = "PUT";
+    }
+
+    fetch(url, {
+      method,
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.data || data.message === "Tugas berhasil diupdate") {
+        showAlert(data.message || "Tugas tersimpan", "success");
+        resetForm();
+        loadTugas();
+      } else {
+        showAlert(data.message || "Terjadi kesalahan saat menyimpan tugas", "error");
+      }
+    })
+    .catch(err => {
+      showAlert("Terjadi kesalahan: " + err, "error");
+    });
+  }
+
+  function editTugas(item) {
+    document.getElementById("tugas-id").value = item.id;
+    document.getElementById("mk").value = item.mata_kuliah;
+    document.getElementById("judul").value = item.judul;
+    document.getElementById("deskripsi").value = item.deskripsi || "";
+    document.getElementById("deadline").value = item.deadline;
+    document.getElementById("status").value = item.status;
+    showAlert("Mode edit: ubah data lalu klik Simpan Tugas", "info");
+  }
+
+  function deleteTugas(id) {
+    if (!confirm("Yakin ingin menghapus tugas ini?")) return;
+
+    fetch(API_BASE + "/tugas.php?id=" + encodeURIComponent(id), {
+      method: "DELETE",
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      showAlert(data.message || "Tugas dihapus", "success");
+      loadTugas();
+    })
+    .catch(err => {
+      showAlert("Terjadi kesalahan: " + err, "error");
+    });
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  window.onload = init;
+</script>
+</body>
+</html>

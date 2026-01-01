@@ -19,7 +19,7 @@ Untuk menjaga keamanan data 🔐,sistem menerapkan autentikasi berbasis token ya
 
 🛠️ TEKNOLOGI YANG DIGUNAKAN
 
-Frontend   : HTML, CSS, 🎨  
+Frontend   : HTML, CSS, JavaScript 🎨  
 Backend    : PHP Native ⚙️  
 Database   : MySQL 🗄️  
 Web Server : Apache 🌍  

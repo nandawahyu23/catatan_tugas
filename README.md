@@ -81,7 +81,7 @@ http://localhost/catatan_tugas/api
 ----------------------------------------------------------------
 
 📊 CONTOH RESPONSE API (JSON)
-
+```
 [
   {
     "id": 2,
@@ -92,7 +92,7 @@ http://localhost/catatan_tugas/api
     "status": "proses"
   }
 ]
-
+```
 ----------------------------------------------------------------
 
 ✅ KESIMPULAN

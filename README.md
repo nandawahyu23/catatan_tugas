@@ -29,18 +29,21 @@ Arsitektur : RESTful API (JSON) 🔄
 
 📂 STRUKTUR DIREKTORI APLIKASI
 
-catatan_tugas
-├── 📁 api
-│   ├── ⚙️ config.php
-│   ├── 🔑 login.php
-│   ├── 🧾 register.php
-│   └── 📌 tugas.php
-├── 📁 public
-│   ├── 🌐 index.html
-│   ├── 📄 tugas.html
-│   └── 🎨 style.css
-└── 📁 sql
-    └── 🗃️ database.sql
+```
+catatan_tugas/
+├── api/
+│   ├── config.php
+│   ├── login.php
+│   ├── register.php
+│   └── tugas.php
+├── public/
+│   ├── index.html
+│   ├── tugas.html
+│   └── style.css
+└── sql/
+    └── database.sql
+```
+
 
 ----------------------------------------------------------------
 
